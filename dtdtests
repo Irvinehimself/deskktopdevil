@@ -1,0 +1,103 @@
+#!/bin/sh
+
+#################################################################################
+# Copyright (C) 2017  Irvine McMinn (irvine mcminn at gmail dot com)
+#
+# Real Time, Host based Malicous Software and Intrusion Detection System
+# for Linux Desktops. The project home page can be found at:
+# https://github.com/Irvinehimself/deskktopdevil
+#
+# Desktop Devil is free software: you can redistribute it and/or modify  it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+#
+# Desktop Devil is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Desktop Devil. If not, see <http://www.gnu.org/licenses/>.
+#################################################################################
+
+
+GetTestDirPrompt="Enter absolute path to the directory you wish to conduct the tests in, (default is /etc )"
+DirTestPrompt="Choose nested test dir: (1), (2), (3), (4), (5) or (Q)uit"
+ActionPrompt="Choose test action: (E)dit, (C)opy/create/delete, (R)ename, (Q)uit tests"
+UndoPrompt="Press any Key to undo moves/copies/deletes from test directory"
+
+function GetTestDir(){
+    echo "$GetTestDirPrompt"
+    read TestDirPath
+    if [[ "$TestDirPath" == "" ]] ; then
+            TestDirPath="/etc"
+        else
+                if [[ "$TestDirPath" == *"/" ]] ; then
+                    TestDirPath=${TestDirPath%?}
+                fi
+    fi
+}
+
+function CreateTestDirs(){
+    GetTestDir
+    echo "Creating Test diretcories in $TestDirPath/"
+    cd "$TestDirPath"
+    sudo mkdir "AAAtestDir1"
+    cd "$TestDirPath/AAAtestDir1"
+    echo "Creating Test file 1" | sudo tee --append "Test.txt"
+    sudo mkdir "AAAtestDir2"
+    cd "$TestDirPath/AAAtestDir1/AAAtestDir2"
+    sudo echo "Creating Test file 2" | sudo tee --append "Test.txt"
+    sudo mkdir "AAAtestDir3"
+    cd "$TestDirPath/AAAtestDir1/AAAtestDir2/AAAtestDir3"
+    sudo echo "Creating Test file 3" | sudo tee --append "Test.txt"
+    sudo mkdir "AAAtestDir4"
+    cd "$TestDirPath/AAAtestDir1/AAAtestDir2/AAAtestDir3/AAAtestDir4"
+    sudo echo "Creating Test file 4" | sudo tee --append "Test.txt"
+    sudo mkdir "AAAtestDir5"
+    cd "$TestDirPath/AAAtestDir1/AAAtestDir2/AAAtestDir3/AAAtestDir4/AAAtestDir5"
+    sudo echo "Creating Test file 5" | sudo tee --append "Test.txt"
+}
+
+function RemoveTestDirs(){
+    echo "Deleting $TestDirPath/ test directories"
+    cd "$TestDirPath/"
+    sudo rm -rf "AAAtestDir1"
+}
+
+function TestAccess(){
+	CreateTestDirs
+	echo "$DirTestPrompt"
+	read -n1 -s Key
+	until echo $Key|grep -iq "q"; do
+		case $Key in
+			"1") cd "$TestDirPath/AAAtestDir1/";;
+	    	"2") cd "$TestDirPath/AAAtestDir1/AAAtestDir2/";;
+	    	"3") cd "$TestDirPath/AAAtestDir1/AAAtestDir2/AAAtestDir3/";;
+	    	"4") cd "$TestDirPath/AAAtestDir1/AAAtestDir2/AAAtestDir3/AAAtestDir4/";;
+	    	"5") cd "$TestDirPath/AAAtestDir1/AAAtestDir2/AAAtestDir3/AAAtestDir4/AAAtestDir5";;
+	    esac
+	    if ! echo $Key|grep -iq "q"; then
+	    	echo "$ActionPrompt"
+	    	read -n1 -s Key
+	    	shopt -s nocasematch
+			case $Key in
+				"e") sudo nano "Test.txt";;
+	    		"c") sudo cp "Test.txt" "TestDummy.txt"
+	                 echo "$UndoPrompt"
+	    	         read -n1 -s Key
+	    	         sudo rm "TestDummy.txt";;
+	    		"r") sudo mv "Test.txt" "TestDummy.txt"
+	                 echo "$UndoPrompt"
+	    	         read -n1 -s Key
+	    	         sudo mv "TestDummy.txt" "Test.txt";;
+	    	esac
+	    	shopt -u nocasematch
+	        echo "$DirTestPrompt"
+	        read -n1 -s Key
+	    fi
+	done
+	RemoveTestDirs
+	Key="Z"
+}

@@ -1,0 +1,122 @@
+#!/bin/sh
+
+#################################################################################
+# Copyright (C) 2017  Irvine McMinn (irvine mcminn at gmail dot com)
+#
+# Real Time, Host based Malicous Software and Intrusion Detection System
+# for Linux Desktops. The project home page can be found at:
+# https://github.com/Irvinehimself/deskktopdevil
+#
+# Desktop Devil is free software: you can redistribute it and/or modify  it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+#
+# Desktop Devil is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Desktop Devil. If not, see <http://www.gnu.org/licenses/>.
+#################################################################################
+
+ ### ### The values of the following variables and constants can be safely adjusted to suit the users tastes
+ ### ### Make a backup first
+
+ ### Change the notification icon
+WatchIcon="$PathToWorkDir/dtdimages/dtddevil.png"
+# Source https://commons.wikimedia.org/wiki/File:SMirC-devil.svg
+DyingIcon="$PathToWorkDir/dtdimages/dtddistraught.png"
+# Source https://pixabay.com/en/alien-smiley-emoji-emoticon-41625/
+SleepIcon="$PathToWorkDir/dtdimages/dtdsleep.png"
+# Source https://commons.wikimedia.org/wiki/File:Smiley_devil_sad.svg
+
+ ### Log Files
+LogTitle="Malware Intrusion Detector --- Start New Log"
+LogFile="$PathToWorkDir/dtdlogs/dtdLogFileTempName"
+OldLogFile="$PathToWorkDir/dtdlogs/dtdLogFileTempName.old"
+
+ ### Messages
+MurderMsg="HELP!!! MURDER!!! ---"
+SuicideMsg="ADIEU, MES AMIS! Recieved suicide pill, dying now... Ughrrr!!!"
+SleepMsg="Bon Nuit, sleepy...zzzzz!!!"
+WakeUpMsg="Tout va bien, je suis en garde ... GRRRRR!"
+WhoopsMsg="Whoops -- Failed to set some watches, check log for details"
+
+ ### Sleeping Pill, (Updates and maintenance)
+SleepFileDir="/tmp/"
+ ### Note: The actual Sleep file name and value is set at runtime to a random number,
+ ### and the file itself does not exist until the sleeping pill has been sent. You can
+ ### further obfusticate things by changing the directory in which the sleeping pill is
+ ### posted.
+
+SnoozeTime="5" # The time to snooze when you suspend the watch for updates and maintenance
+
+ ### WatchList: List of files to watch
+WatchList="$PathToWorkDir/dtdconfigs/dtdwatchlist"
+
+ ### Time needed for inotify to set up watches.
+TimeToSettle="10"
+# Basically, the problem is that when setting up watches, inotify touches folders/files indiscriminately. When it touches
+# folders/files which have already set to one of the higher WatchLevels, this, of course, set off so many false alarms
+# that the poor old LogFile struggles to handle all the junk. My prototype solution is to give it a minute or so to settle
+# befor initiating the watch
+
+ ### Temporaraly increase watch limit
+WatchLimit="65536"
+# Set WatchLimit to "" if you don't need to increase the limmit. I find 65536 works for me. It could still be increased
+# dramaticaly if  needed, (for example you do a lot of audio work,) but at this level I can more or less coverthe entire
+# root file system, while leaving plenty of watches for other applications.
+
+# Please Note: As a kernel function triggered by IRQ's, inotify  has an insignificant memory footprint and has virtually
+# no CPU usage. As a result, the default limit to the number of files being watched,(usually 8192) can be safely increased
+# to seemingly outlandish values without impinging on system performance. In fact, some applications, particularly audio
+# editors, can set the watch limit in the hundreds of thousands.
+#
+# You can use the above variable to temporaraly set a new limit. To make the changes permanent depends on the distro and
+# whether it uses systemd or not, but essentially involves creating/editing a file like: "/etc/sysctl.d/90-inotify.conf"
+# to include a line simialar to "fs.inotify.max_user_watches = WatchLimit"
+
+ ### Useful commands:
+ ### $ sysctl fs.inotify
+#		fs.inotify.max_queued_events = 16384
+#		fs.inotify.max_user_instances = 128
+#		fs.inotify.max_user_watches = 8192
+#
+ ### To change maxlimits temporaraly:
+# $ sysctl -n -w fs.inotify.max_user_watches=16384
+# $ sysctl -n -w fs.inotify.max_user_instances=512
+#
+ ### To get list of curent watches:
+# $ ps aux | grep inotifywait
+# USER       PID  %CPU %MEM  VSZ RSS     TTY   STAT START   TIME COMMAND
+#    USER = user owning the process
+#    PID = process ID of the process
+#    %CPU = It is the CPU time used divided by the time the process has been running.
+#    %MEM = ratio of the process’s resident set size to the physical memory on the machine
+#    VSZ = virtual memory usage of entire process (in KiB)
+#    RSS = resident set size, the non-swapped physical memory that a task has used (in KiB)
+#    TTY = controlling tty (terminal)
+#    STAT = multi-character process state
+#    START = starting time or date of the process
+#    TIME = cumulative CPU time
+#    COMMAND = command with all its arguments
+
+ ### References:
+# https://superuser.com/questions/117913/ps-aux-output-meaning
+# https://unix.stackexchange.com/questions/13751/kernel-inotify-watch-limit-reached
+
+ ### The following time variables are used to avoid flooding the destop with notifications during updates or maintenance
+LastCreate="-350"
+LastDelete="-350"
+LastModify="-350"
+LastAccess="-350"
+LastMove="-350"
+ ### Min Time  between alerts, (in seconds)
+MinCreate="60"
+MinDelete="60"
+MinModify="60"
+MinAccess="60"
+MinMove="60"
+

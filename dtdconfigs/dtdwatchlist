@@ -1,0 +1,136 @@
+
+#################################################################################
+# Copyright (C) 2017  Irvine McMinn (irvine mcminn at gmail dot com)
+#
+# Real Time, Host based Malicous Software and Intrusion Detection System
+# for Linux Desktops. The project home page can be found at:
+# https://github.com/Irvinehimself/deskktopdevil
+#
+# Desktop Devil is free software: you can redistribute it and/or modify  it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+#
+# Desktop Devil is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Desktop Devil. If not, see <http://www.gnu.org/licenses/>.
+#################################################################################
+
+#####################
+### Parsing this file
+#####################
+
+# Start the line with # to make a comment
+# You can leave blank lines, if you so desire.
+
+# Currently, the parser is pretty simple, It only greps for a # char in the line
+So, because it has a # char, this entire line is a comment.
+
+# Any line that is not empty, (or doesnt contain #,) is treated as part of the watch list.
+# For this reason you should trim trailing spaces before saving
+
+
+###########################
+### WatchList record fields
+###########################
+
+# The WatchList record fields are seperated by colons, (:), ie "WatchLevel:PathToDirOrFile:Excludes", (or Includes)
+# Note1: You can either have an "--include(..)" or an "--exclude(..)", you cant have both on the same "inotifywatch".
+# Note2: The case insensitive versions "excludei(..)" and "includei(..)" are not yet supported.
+# Note3: I should point out that although the "--include(..)" doesn't produce errors, in operation it is buggy. For some
+# reason it tries to watch extreaneous files and folders not actually included in the list.
+
+# The record must have a WatchLevel and Path to the watched directory, (or file,) seperated by a colon. Excludes and
+# Includes, also seperated from the path by a colon, are optional. They are of the format "--exclude(..)" or
+# "--include(..)" where the braces, (..), contain regular expressions seperated by pipes, '|'.
+
+# By the way, there is no need to panic at the mention of regex, as you will see below, in most use cases, the regex is
+# very, very basic and consists solely of terminating the "/PathToTargetDir/" with the wildcard '.*'
+
+# The reason for the wild card is because the "--exclude()"/"--include()" options only apply to files. Hence, a wild card
+# is needed so that it has something to search for when indexing all the files and subfolders etc
+
+# While those skilled in the use of RegEx may construct elaborate "--include()"/"--exclude()" expressions, us lesser
+# mortals just need to remmember not to use the '\' Esc char, (not the same as '/'), unless we mean it. (To reiterate, in
+# most practical situations, we only need '.*' wildcard)
+
+# Finally, "DeskTop Devil" automaticaly sets the "-mr" option. Ie "-r" means watches are recursive, and the -m option
+# means watches continue untill killed by the main panel. (Note: new files and sub folders are automatically added to the
+# WatchList.)
+
+
+#############################
+### Possible WatchLevels: ###
+#############################
+
+# (This is an early alpha, so these may be subject to some slight modifications)
+# CRITICAL: access, open, close, create, delete, modify, move
+#     HIGH: open, close, create, delete, modify, move
+# ELAVATED: access, create, delete, modify, move
+#  "MEDIUM: create, delete, modify, move
+#  "CUSTOM: -e event1 -e event2..........(Not yet supported) see "inotifywait --help" or "inotifywait manual" for details
+
+
+
+#########################################
+### ### ### Example WatchList ### ### ###
+#########################################
+
+# This example is based on Arch file system architecture, other distros may require aditional root paths. For example,
+# in Arch, /bin/ and /sbin/ are symlinked to /usr/bin/. Additionally, /lib/ is symlinked to /usr/lib/
+
+# The basic steps to configuring the WatchList are:
+# 1) -- Set up a basic configuration.
+# 2) -- Run it.
+# 3) -- Refine the excludes and WatchLevels.
+# 4) -- Run it.
+# 5) -- Refine it again.
+# 6) -- Run it .... Refine it. ....
+# 7) -- Untill you are not annoyed by irrelavent notifications.
+
+# This doesn't take long, annoyances become apparent almost immediately. I set up the basic configuration below, in about
+# 5 minutes. It was just a case of adding excludes as unforseen annoyances appeared.
+
+# In the example below, note the colon seperating the "path" from the "--exclude(..)" and also note there are NO Spaces
+
+# Also:
+# "--exclude=(lib/apparmor/.*|lib/modules/.*)" translates as: WATCH everything but "lib/apparmor" and "lib/modules"
+# "--include=(lib/apparmor/.*|lib/modules/.*)" translates as: EXCLUDE everything but "lib/apparmor" and "lib/modules"
+# Remember "--include=(..)" is buggy, (I am beginning to suspect that the problems originate in "inotify-tools")
+
+# Finally, this is an example of how to configure, not an actual configuration.
+
+##################################################################################################################
+CRITICAL:/boot/
+MEDIUM:/dev/:--exclude=(pts/.*|input/.*)
+MEDIUM:/etc/
+MEDIUM:/opt/
+#MEDIUM:/proc/
+MEDIUM:/run/:--exclude=(systemd/journal/streams/.*|user/1000/dconf/.*)
+MEDIUM:/srv/
+MEDIUM:/sys/:--exclude=(fs/cgroup/.*)
+MEDIUM:/usr/:--exclude=(lib64/.*|sbin/.*)
+MEDIUM:/var/:--exclude=(lib/rkhunter/.*|lib/bluetooth/.*|lib/machines/.*|lib/udisks2/.*|lib/NetworkManager/.*|lib/mysql/.*|lib/gdm/.*|lib/xkb/.*|/cache/man/.*|lock/.*|mail/.*|run/.*|tmp/.*|log/.*)
+
+### Personal
+CRITICAL:/home/memyself/.config/autostart/
+CRITICAL:/home/memyself/.ssh/
+CRITICAL:/home/memyself/.gnupg/
+
+# Firejail
+ELAVATED:/home/memyself/.config/firetools/
+MEDIUM:/home/memyself/.config/firejail/
+
+# Desktop directories
+ELAVATED:/home/memyself/.config/menus/
+MEDIUM:/home/memyself/.local/share/applications/
+ELAVATED:/home/memyself/.local/share/desktop-directories/
+######################################################################################################################
+
+# Note on /var/ excludes, they are mostly either root protected files and folders or frequently updated logs etc. It
+# also exludes links, otherwise you run into problems, (see read me).
+

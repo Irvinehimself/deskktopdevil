@@ -1,0 +1,134 @@
+#!/bin/sh
+
+#################################################################################
+# Copyright (C) 2017  Irvine McMinn (irvine mcminn at gmail dot com)
+#
+# Real Time, Host based Malicous Software and Intrusion Detection System
+# for Linux Desktops. The project home page can be found at:
+# https://github.com/Irvinehimself/deskktopdevil
+#
+# Desktop Devil is free software: you can redistribute it and/or modify  it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+#
+# Desktop Devil is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Desktop Devil. If not, see <http://www.gnu.org/licenses/>.
+#################################################################################
+
+ ###  Include files
+source "dtdconfigs/dtduservariables"
+
+ ### ### ### ### Functions
+
+function GetLogTime(){
+    echo "$(date +%d/%m/%y-%H.%M.%S)" # Ensures uniform format on all sources
+}
+
+function SetUp() {
+    LogTime="$(GetLogTime)"
+	if [ -a "$LogFile" ] ; then                                     # $LogFile exists
+	   cp -f "$LogFile" "$OldLogFile"
+	fi
+    echo "$LogTime: $LogTitle" > "$LogFile"
+    if [[ "$WatchLimit" != "" ]] ; then
+            echo "Sorry, need sudo permission to increase user watches"
+            sudo sysctl -n -w fs.inotify.max_user_watches="$WatchLimit"
+        else
+                WatchLimit="$(cat /proc/sys/fs/inotify/max_user_watches)"
+    fi
+}
+
+function NotifyDeskTop() {
+    # LastCreate="$(NotifyDeskTop $LastCreate $MinCreate $Event $FilePath)"
+    LstTme="$1" ; MinTme="$2"
+    TmeDiff="$((SECONDS-LstTme))"
+    if [[ "$TmeDiff" -gt "$MinTme" ]] ; then
+            notify-send "$3 violation in: -- $4" --icon="$WatchIcon"
+    fi
+    echo "$SECONDS" # To $1
+}
+
+function QuerySleepingPill(){
+    TookSleepingPill="No"
+	if [ -a "$SleepFileName" ] ; then
+        ### For security, both sleeping pill and file name use random numbers generated at runtime
+	    ### In the production version, this realy needs to be root only access and encrypted
+		if grep -q "$SleepingPill" "$SleepFileName" ; then
+    		TookSleepingPill="Yes"
+		fi
+	fi
+}
+
+function Watch() {
+    while read WatchPath ; do
+        QuerySleepingPill
+        if [[ "$TookSleepingPill" == "No" ]] ; then
+            TimeSinceStart=$((SECONDS-TimeOfStart))
+            if [ "$TimeSinceStart" -gt "$TimeToSettle" ] ; then
+                ### The problem is that when setting up watches, inotify touches folders/files indiscriminately
+                ### When it touches folders/files which have already set to one of the higher WatchLevels, this
+                ### of course set off so many false alarms that the poor old LogFile struggles to handle all the
+                ### junk. My prototype solution is to give it a minute or so to settle befor initiating the watch
+    			FilePath="$(echo "${WatchPath}" | cut -d' ' -f1)"
+    			Event="$(echo "${WatchPath}" | cut -d' ' -f2)"
+        		LogTime="$(GetLogTime)"
+    			echo "$LogTime: Violation: -- $WatchPath" >> "$LogFile"                           # Update Logs
+    			case $Event in
+    			    "CREATE"*)   LastCreate="$(NotifyDeskTop $LastCreate $MinCreate $Event $FilePath)";;
+    			    "DELETE"*)   LastDelete="$(NotifyDeskTop $LastDelete $MinDelete $Event $FilePath)";;
+    			    "MODIFY"*)   LastModify="$(NotifyDeskTop $LastModify $MinModify $Event $FilePath)";;
+    			    "ACCESS"*)   LastAccess="$(NotifyDeskTop $LastAccess $MinAccess $Event $FilePath)";;
+        		      "MOVE"*)     LastMove="$(NotifyDeskTop $LastMove   $MinMove   $Event $FilePath)";;
+        		      "OPEN"*)     LastMove="$(NotifyDeskTop $LastMove   $MinMove   $Event $FilePath)";;
+        		     "CLOSE"*)     LastMove="$(NotifyDeskTop $LastMove   $MinMove   $Event $FilePath)";;
+        		            *)   echo "---Debug---  Unknown $Event violation in: -- $FilePath" >> "$LogFile"
+        		                 notify-send "Unknown $Event violation in: $FilePath" --icon="$WatchIcon";;
+    			esac
+    		fi
+    	fi
+    done
+}
+
+function SetWatch() {
+    case "$1" in
+        "CRITICAL") inotifywait -mr $3 -e access -e open -e close  -e create -e delete -e modify -e  move $2 |\
+                    Watch;;
+            "HIGH") inotifywait -mr $3 -e open -e close  -e create -e delete -e modify -e  move $2 | Watch;;
+        "ELAVATED") inotifywait -mr $3 -e access -e create -e delete -e modify -e  move $2 | Watch;;
+          "MEDIUM") inotifywait -mr $3 -e create -e delete -e modify -e  move $2 | Watch;;
+          "CUSTOM") inotifywait -mr $3 -e create -e delete -e modify -e  move $2 | Watch;;
+                 *) inotifywait -mr $3 -e create -e delete -e modify -e  move $2 | Watch;;
+    esac
+}
+
+function GetWatchList() {
+    while read WatchListLine ; do
+        if [[ "$WatchListLine" != "" ]] ; then
+            if ! grep -q "#" <<< "$WatchListLine" ; then
+                WatchLevel="$(echo "${WatchListLine}" | cut -d':' -f1)"
+                WatchTarget="$(echo "${WatchListLine}" | cut -d':' -f2-3)"
+                if [[ "$WatchTarget" == *"--exclude="* || "$WatchTarget" == *"--include="* ]] ; then
+                        Cludes="$(echo "${WatchTarget}" | cut -d':' -f2)"
+                        WatchTarget="$(echo "${WatchTarget}" | cut -d':' -f1)"
+                    else
+                            Cludes=""
+                fi
+                echo "Setting $WatchLevel watch on $WatchTarget $Cludes"
+                TimeOfStart="$SECONDS"
+                SetWatch "$WatchLevel" "$WatchTarget" "$Cludes" 2>"$LogFile" &
+            fi
+        fi
+    done < "$WatchList"
+}
+
+ ### ### ### ### Main shell
+
+#SetUp
+#GetWatchList
+

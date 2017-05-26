@@ -1,0 +1,245 @@
+#!/bin/sh
+
+#################################################################################
+# Copyright (C) 2017  Irvine McMinn (irvine mcminn at gmail dot com)
+#
+# Real Time, Host based Malicous Software and Intrusion Detection System
+# for Linux Desktops. The project home page can be found at:
+# https://github.com/Irvinehimself/deskktopdevil
+#
+# Desktop Devil is free software: you can redistribute it and/or modify  it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+#
+# Desktop Devil is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Desktop Devil.  If not, see <http://www.gnu.org/licenses/>.
+#################################################################################
+
+ ### Dependencies:
+ ### inotify-tools  (community)
+ ### libnotify      (extra)
+ ### bash compatible command processor
+ ### notification daemon of choice
+ ### Optional
+ ### alltray        (community)
+ ### nano           (easily configured to something else)
+
+
+
+PathToWorkDir="$HOME/Git/DesktopDevil"
+
+ ###  Include files
+source "dtdconfigs/dtduservariables"
+source "./dtdwatch"
+source "./dtdtests"
+
+OptionPrompt="(L)aunch, (K)ill, (S)uspend, List(P)ids, (T)ests, Lo(G),  (Q)uit"
+
+
+function ShowLog(){
+	nano "$LogFile"
+}
+
+function GetOptionKey(){
+    echo "$OptionPrompt"
+    read -n1 -s Key
+}
+
+function GetSleepSwitch(){
+	Letters=({A..Z})
+	SleepFilePrefix=""
+	Range=26  # Start count at 0
+	for i in {0..3} ; do
+		Letter=$RANDOM
+		let "Letter %= $Range"
+		SleepFilePrefix="$SleepFilePrefix"${Letters[$Letter]}
+	done
+	SleepFilePrefix="$SleepFilePrefix""."
+	SleepFileName="$SleepFileDir$SleepFilePrefix$RANDOM"
+	SleepingPill="$RANDOM"
+	### Once we move beyond prototyping, the file can be encrypted and protected with root privaledges
+}
+
+function BeepAlarm() {
+    ### Credit: https://unix.stackexchange.com/questions/1974/how-do-i-make-my-pc-speaker-beept
+	( \speaker-test --frequency $1 --test sine )&
+	pid=$!
+	\sleep 0.${2}s
+	\kill -9 $pid
+}
+
+function SoundAlarm(){
+    for i in {1..2} ; do
+	   BeepAlarm 400 200 > /dev/null &
+	   sleep 1
+	done
+}
+
+function KillSwitch(){
+    LogTime="$(GetLogTime)"
+    echo "$LogTime: $SuicideMsg" >> "$LogFile"
+    notify-send "$SuicideMsg" --icon="$DyingIcon"
+    kill -- -$$
+}
+
+function Snooze(){
+    echo "$SleepingPill" > "$SleepFileName"
+    LogTime="$(GetLogTime)"
+    echo "Sleeping"                                 # To cntrl panel
+    echo "$LogTime: $SleepMsg" >> "$LogFile"        # To Log
+    notify-send "$SleepMsg" --icon="$SleepIcon"
+    sleep "$SnoozeTime"m
+    rm "$SleepFileName" > /dev/null 2>&1
+    LogTime="$(GetLogTime)"
+    echo "Awake now"                                # To cntrl panel
+    echo "$LogTime: $WakeUpMsg" >> "$LogFile"       # To Log
+    notify-send "$WakeUpMsg" --icon="$WatchIcon"
+}
+
+function GetPidsSubShell(){
+	ps aux | grep inotifywait |\
+	(
+	### Need to get our Pids back fromthe subshell.
+	### Make sure there are no pre-existing files
+	### Contaminate our results.
+	echo "" > "/tmp/OurPidNum.txt"
+	echo "" > "/tmp/OurPidWatch.txt"
+	echo "" > "/tmp/OurPidClude.txt"
+	PidCount="1"
+	while read Line ; do
+		if [[ "$Line" != *"grep"* ]] ; then                                          # stops it from listing itself
+			Pid=${Line#"$USER"}                                                      # remove user name
+			until [[ "$Pid" != " "* ]] ; do
+                Pid=${Pid#" "}                                                       # remove leading blank spaces
+			done
+			Pid="$(echo "${Pid}" | cut -d' ' -f1)"
+			WatchID=${Line##*"inotifywait"}
+			if [[ "$WatchID" == *"--exclude=("* || "$WatchID" == *"--include=("* ]] ; then
+                    if [[ "$WatchID" == *"--exclude=("* ]] ; then
+                            TmpClude="--exclude=("
+                        else
+                                TmpClude="--include=("
+                    fi
+                	PidClude="$(echo "${WatchID}" | cut -d'(' -f2)"
+                	PidClude="$(echo "${PidClude}" | cut -d')' -f1)"
+                	PidClude="$TmpClude""$PidClude"")"
+                	WatchID="$(echo "${WatchID}" | cut -d')' -f2-99)"
+                else
+                        PidClude=""
+			fi
+			PidWatch="$(echo "${WatchID}" | cut -d'/' -f2-99)"
+			if grep -q "$PidWatch" "$WatchList" ; then                               # check its one of our watches!!!!
+				echo "$Pid" >> "/tmp/OurPidNum.txt"
+				echo "/""$PidWatch" >> "/tmp/OurPidWatch.txt"
+				echo "$PidClude" >> "/tmp/OurPidClude.txt"
+				PidCount=$((PidCount+1))
+			fi
+		fi
+	done
+	echo "$PidCount" > "/tmp/OurPidCount.txt"
+	)
+}
+
+function InitPidLive(){
+	for ((i=0; i<${PidCount}; i++)) ; do
+	   PidLive[i]="0"
+	done
+}
+
+function GetPids(){
+    GetPidsSubShell
+    read PidCount < "/tmp/OurPidCount.txt"
+    readarray -t PidNum < "/tmp/OurPidNum.txt"
+    readarray -t PidWatch < "/tmp/OurPidWatch.txt"
+    readarray -t PidClude < "/tmp/OurPidClude.txt"
+    rm "/tmp/OurPidCount.txt"
+    rm "/tmp/OurPidNum.txt"
+    rm "/tmp/OurPidWatch.txt"
+    rm "/tmp/OurPidClude.txt"
+    InitPidLive
+
+}
+
+function ShowPids(){
+    if [[ "$PidCount" != "" ]] ; then
+            echo "We have $((PidCount-1)) subshells running:"
+    		for ((i=1; i<${PidCount}; i++)) ; do
+                ### Start i=1 because we initialised the files with an empty line.
+    		    TmpPidNum=${PidNum[i]}
+    		    TmpPidWatch=${PidWatch[i]}
+    		    TmpPidClude=${PidClude[i]}
+    		    echo "$TmpPidNum $TmpPidWatch $TmpPidClude"
+    		done
+    	else
+    	       echo "No running subshells"
+    fi
+}
+
+function LaunchWatches(){
+    # check no running instance
+	SetUp
+	GetWatchList
+	GetPids
+    OverWatch &
+    sleep "$TimeToSettle"
+    if grep -iq "Failed to watch" "$LogFile" ; then
+            notify-send "$WhoopsMsg" --icon="$WatchIcon"
+        else
+                notify-send "$WakeUpMsg" --icon="$WatchIcon"
+                echo "$WakeUpMsg" >> "$LogFile"
+    fi
+}
+
+function OverWatch(){
+    TillDeath=""
+    echo "Patience, settling in."
+    sleep "$TimeToSettle"
+    echo "Started overwatch:"
+    ShowPids
+    echo "Press any key to return to control to panel"
+    while [[ "$TillDeath" == "" ]] ; do
+        sleep 60    # don't want to impose a noticable overhead
+    	for ((i=1; i<${PidCount}; i++)) ; do
+            ### Start i=1 because we initialised the files with an empty line.
+            if [[ ${PidLive[i]} == "0" ]] ; then
+            	if ! kill -0 ${PidNum[i]} > /dev/null 2>&1 ; then
+            	    ### Once we are satisfied there are no kinks, we can alter this to restart
+            	    ### the murdered watches. Even more sneakily, we can have a seperate monitor
+            	    ### just to restart this one.
+            	    PidLive[i]="1"
+            	    LogTime="$(GetLogTime)"
+            	    echo "$LogTime $MurderMsg ${PidWatch[i]}" >> "$LogFile"
+            	    notify-send "$MurderMsg ${PidWatch[i]}" --icon="$WatchIcon"
+            	    SoundAlarm
+            	fi
+            fi
+    	done
+    done
+}
+
+function Main(){
+    GetSleepSwitch
+	GetOptionKey
+	until echo $Key|grep -iq "q"; do
+	    shopt -s nocasematch
+	    case $Key in
+	        "k") KillSwitch;;
+	        "l") LaunchWatches;;
+	        "p") ShowPids;;
+	        "s") Snooze;;
+	        "g") ShowLog;;
+	        "t") TestAccess;;
+	    esac
+	    shopt -u nocasematch
+		GetOptionKey
+	done
+}
+ ### ### ### Main
+
+Main
