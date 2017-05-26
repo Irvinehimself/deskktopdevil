@@ -13,7 +13,6 @@ Real Time, Host based Malicous Software and Intrusion Detection System for Linux
 * alltray : (not necessary, but minimising the control panel to the system tray is a really good idea if you would like to run a continuous watch)
 * nano    : (easily configured to something else)
 
-<br><br>
 ### Contents:
 * What is Desktop Devil?
 * Features:
