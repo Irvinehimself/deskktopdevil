@@ -20,7 +20,6 @@ Real Time, Host based Malicous Software and Intrusion Detection System for Linux
 * Notes:
 * Installation:
 
-<br><br>
 ### What is Desktop Devil?
 Linux has a large number of very powerful *HIDS*  packagaes, *(Host Based Intrusion Detection Systems,)* aimed at the server market, but little to nothing for your average desktop user. Desktop Devil is an extremely lightweight *"Real Time HIDS"* package that is aimed squarely at the Linux desktop. While it is currently only a prototype or template, it is still quite usable.
 
@@ -30,7 +29,6 @@ Using the native *inotify* capabilities of the Linux kernel, it can watch all th
 
 By default watches are continuous and recursive, *(inotifywait -mr)*. Meaning sub-folders and new files are watched and watches run until the program is terminated.
 
-<br><br>
 ### Features:
 * Violations are recorded to the log along with a pop-up message outlining the trigger event.
 
@@ -44,7 +42,6 @@ By default watches are continuous and recursive, *(inotifywait -mr)*. Meaning su
 
 * A test routine launched from the control panel which automatically creates, (and deletes,) nested test directories, along with editable text files, in a target directory. (Requires nano.)
 
-<br><br>
 ### Notes & Issues:
 Okay, at the moment, the biggest single issue is symlinks. In any security situation, symlinks are a major vulnerability with multiple issues and problems. Try a Google search, you will find a great many diverse technical discussions on the subject.
 
@@ -54,7 +51,6 @@ To explain, consider the file system architecture of Arch Linux: */bin*, */sbin*
 
 So, in my demo configuration, I try to exclude symlinks. However, this leaves open the possibility of an attacker changing the target of the link. This is a major security hole for which I am actively researching possible solutions.
 
-<br><br>
 ### Installation:
 As stated, this is a prototype, I am running it, (without privileges,) from my git folder. I have have it running more or less constantly and, when browsing in the darker regions of the net, I once actually caught some genuine suspicious activity when a website tried, (and failed,) to create a file where it shouldn't.
 
