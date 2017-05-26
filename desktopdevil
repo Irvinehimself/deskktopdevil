@@ -32,7 +32,7 @@
 
 
 
-PathToWorkDir="$HOME/Git/DesktopDevil"
+PathToWorkDir="$HOME/Git/DesktopDevil/deskktopdevil/"
 
  ###  Include files
 source "dtdconfigs/dtduservariables"

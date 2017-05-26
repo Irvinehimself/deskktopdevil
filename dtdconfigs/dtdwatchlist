@@ -117,18 +117,18 @@ MEDIUM:/usr/:--exclude=(lib64/.*|sbin/.*)
 MEDIUM:/var/:--exclude=(lib/rkhunter/.*|lib/bluetooth/.*|lib/machines/.*|lib/udisks2/.*|lib/NetworkManager/.*|lib/mysql/.*|lib/gdm/.*|lib/xkb/.*|/cache/man/.*|lock/.*|mail/.*|run/.*|tmp/.*|log/.*)
 
 ### Personal
-CRITICAL:/home/memyself/.config/autostart/
-CRITICAL:/home/memyself/.ssh/
-CRITICAL:/home/memyself/.gnupg/
+CRITICAL:PathToHome/.config/autostart/
+CRITICAL:PathToHome/.ssh/
+CRITICAL:PathToHome/.gnupg/
 
 # Firejail
-ELAVATED:/home/memyself/.config/firetools/
-MEDIUM:/home/memyself/.config/firejail/
+ELAVATED:PathToHome/.config/firetools/
+MEDIUM:PathToHome/.config/firejail/
 
 # Desktop directories
-ELAVATED:/home/memyself/.config/menus/
-MEDIUM:/home/memyself/.local/share/applications/
-ELAVATED:/home/memyself/.local/share/desktop-directories/
+ELAVATED:PathToHome/.config/menus/
+MEDIUM:PathToHome/.local/share/applications/
+ELAVATED:PathToHome/.local/share/desktop-directories/
 ######################################################################################################################
 
 # Note on /var/ excludes, they are mostly either root protected files and folders or frequently updated logs etc. It
