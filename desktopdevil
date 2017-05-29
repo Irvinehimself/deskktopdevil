@@ -31,15 +31,16 @@
  ### nano           (easily configured to something else)
 
 
-
 PathToWorkDir="$HOME/Git/DesktopDevil/deskktopdevil/"
+cd "$PathToWorkDir"
 
  ###  Include files
 source "dtdconfigs/dtduservariables"
+source "dtdtools/dtdtesttool"
+source "dtdtools/dtdcreatecludetool"
 source "./dtdwatch"
-source "./dtdtests"
 
-OptionPrompt="(L)aunch, (K)ill, (S)uspend, List(P)ids, (T)ests, Lo(G),  (Q)uit"
+OptionPrompt="(L)aunch, (K)ill, (S)uspend, List(P)ids, Lo(G), (T)ests, (C)reateCludes, (Q)uit"
 
 
 function ShowLog(){
@@ -225,7 +226,7 @@ function OverWatch(){
 
 function Main(){
     GetSleepSwitch
-	GetOptionKey
+    GetOptionKey
 	until echo $Key|grep -iq "q"; do
 	    shopt -s nocasematch
 	    case $Key in
@@ -235,6 +236,7 @@ function Main(){
 	        "s") Snooze;;
 	        "g") ShowLog;;
 	        "t") TestAccess;;
+	        "c") CreateCludeToolMain;;
 	    esac
 	    shopt -u nocasematch
 		GetOptionKey

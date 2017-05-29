@@ -1,0 +1,188 @@
+#!/bin/sh
+
+#################################################################################
+# Copyright (C) 2017  Irvine McMinn (irvine mcminn at gmail dot com)
+#
+# Real Time, Host based Malicous Software and Intrusion Detection System
+# for Linux Desktops. The project home page can be found at:
+# https://github.com/Irvinehimself/deskktopdevil
+#
+# Desktop Devil is free software: you can redistribute it and/or modify  it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+#
+# Desktop Devil is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Desktop Devil. If not, see <http://www.gnu.org/licenses/>.
+#################################################################################
+#### cd is for testing only remove when ready
+#cd "$HOME/Git/DesktopDevil/deskktopdevil/"
+#source "dtdconfigs/dtduservariables"
+#source "dtdtools/dtdtesttool"
+
+CreateCludesList=$(echo "$PWD/dtdconfigs/createcludeslist")
+
+
+Exclude=":--exclude("
+Include=":--include("
+
+PromptCreateCludeMainMsg="New (W)ork dir, (T)arget dir, (Q)uitCludes"
+EditReadyPrompt1="Please edit the filter $CludeDirs-$TargetName, in an editor of your choice."
+EditReadyPrompt2="eg Delete all the entries you wish to be at a lower WatchLevel. (you can leave empty lines, but trim trailing spaces)"
+NanoEditPrompt="Do you wish to use the nano editor? y/n"
+EditCompletePrompt="Press any key when ready to continue"
+
+
+CludesPrefix="$CreateCludesWork/CludesWork-"
+Directories="Directories"
+DirNoSyms="DirectoriesNoSymlinks"
+SymlinkDirs="SymlinkDirectories"     # For future development
+Cludes="Cludes"
+CreateCludesList=$(echo "$PWD/dtdconfigs/createcludeslist")
+
+ ### Note want to change default work to $HOME/documents
+function GetWorkDir(){
+    echo "Please enter the path and folder you would like to builld the *cludes in"
+    read CreateCludesWork
+    CreateCludesWork=$(StripLastChar "$CreateCludesWork" "/")
+}
+
+function TargetReadyPrompt(){
+    echo
+    echo "Work files can be found in: $CreateCludesWork/CludesWork$TargetName"
+    echo "Current contents:"
+    ls -C
+    echo
+}
+
+function GetTargetFolders(){
+    cd "$CreateCludesTarget"
+    ### Below '| rev | cut -c 2- | rev |' reverses the grep-output string, strips first char and restores string
+    ### order. In other words, it strips the trailing, '/', added by 'ls -d'
+    ###
+    ### HiddenFolders (filters out './' '../' then strips trailing '/')
+    ls -d .*/  | grep -v './' | rev | cut -c 2- | rev | sort -f --output="$WorkDir/$Directories-$TargetName"
+    ### Append visible folders (strips trailing '/')
+    ls -d */  | rev | cut -c 2- | rev| sort -f >> "$WorkDir/$Directories-$TargetName"
+    ### 'ls --file-type' option adds a '@' char to Symlinks (note all symlinks are files), to make SymlinkFile
+    ### usable we need to strip trailing '@'. Hence 'rev | cut -c 2- | rev '
+    ls -a --file-type | grep '@' | rev | cut -c 2- | rev | sort -f --output="$WorkDir/TempSymlinks"
+    ###
+    cd "$WorkDir"
+    ### Sort and filter
+    ###
+    ### Get symlinked directories
+    sort "TempSymlinks" "$Directories-$TargetName" | uniq -d > "$SymlinkDirs-$TargetName"
+    ### List directories that are not symlinks.
+    cat "$SymlinkDirs-$TargetName" "$SymlinkDirs-$TargetName" "$Directories-$TargetName" | sort | uniq -u > "$DirNoSyms-$TargetName"
+    ### In the particular use case above, we technically dont need double entry for "$SymlinkDirs-$TargetName", but
+    ### it's part of the technique and elimates entries in fileA not in fileB.
+    ### see https://ask.libreoffice.org/en/question/18393/how-do-i-find-the-differences-between-two-lists-in-libreoffice/
+    rm "TempSymlinks"
+}
+
+function GetTarget(){
+    echo "Please enter the target folder for your *cludes"
+    read CreateCludesTarget
+    CreateCludesTarget=$(StripLastChar "$CreateCludesTarget" "/")
+    TargetName=$(echo "$CreateCludesTarget" | tr "/" "-") # Replace '/' with
+    WorkDir=$CludesPrefix-$TargetName
+    mkdir -p "$WorkDir"
+    GetTargetFolders                      # returns to "$WorkDir"
+}
+
+function CreateCludes(){
+    grep -f "$DirNoSyms-$TargetName" "$CreateCludesList" > "TmpCludeDirs"
+    sort "$DirNoSyms-$TargetName" "TmpCludeDirs" | uniq -u > "TmpCludeDirsComplement"
+    ### get the symlinkfolders
+    TmpSymlinksDirStr=""
+    while read Line ; do
+        TmpSymlinksDirStr="$TmpSymlinksDirStr$Line"'/.*|'
+    done < "$SymlinkDirs-$TargetName"
+    ### get the TmpCludeDirs folders
+    TmpCludeDirStr=""
+    while read Line ; do
+        TmpCludeDirStr="$TmpCludeDirStr$Line"'/.*|'
+    done < "TmpCludeDirs"
+    ### get the TmpCludeDirsComplementfolders
+    TmpSymlinksDirStr=""
+    while read Line ; do
+        TmpCludeDirsComplementStr="$TmpCludeDirsComplementStr$Line"'/.*|'
+    done < "TmpCludeDirsComplement"
+    ### output the cludes
+    echo  > "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo "You can copy/paste the following cludes into the 'dtdwatchlist' config file" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo "Note currently only folders are supported. Also, the config list, 'createcludeslist', is to a greater or lesser extent a guess as to what you may wish to apply higher WathchLevels. As a result, the 'createcludeslist' config file may need some refinement" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo "***************************************************************************" >> "$Cludes--$TargetName"
+    ###
+    echo  >> "$Cludes--$TargetName"
+    echo  "A guess at what on your system may require a higher WatchLevel:" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    OutputExclude="$Exclude$TmpSymlinksDirStr$TmpCludeDirStr"
+    OutputExclude=$(StripLastChar "$OutputExclude" "|")
+    OutputExclude="$OutputExclude"')'
+    echo "$OutputExclude" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    ###
+    echo  "The complement of the above exclude list:" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    OutputExcludeComplement="$Exclude$TmpSymlinksDirStr$TmpCludeDirsComplementStr"
+    OutputExcludeComplement=$(StripLastChar "$OutputExcludeComplement" "|")
+    OutputExcludeComplement="$OutputExcludeComplement"')'
+    echo "$OutputExcludeComplement" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo "***************************************************************************" >> "$Cludes--$TargetName"
+    ###
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  "Similar to above, but for --includes(), remmeber 'buggy':" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    OutputInclude="$Include$TmpCludeDirStr"
+    OutputInclude=$(StripLastChar "$OutputInclude" "|")
+    OutputInclude="$OutputInclude"')'
+    echo "$OutputInclude" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    ###
+    echo  "The complement of the above include list 'buggy':" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    OutputIncludeComplement="$Include$TmpCludeDirsComplementStr"
+    OutputIncludeComplement=$(StripLastChar "$OutputIncludeComplement" "|")
+    OutputIncludeComplement="$OutputIncludeComplement"')'
+    echo "$OutputIncludeComplement" >> "$Cludes--$TargetName"
+    echo  >> "$Cludes--$TargetName"
+    rm "TmpCludeDirs"
+    rm "TmpCludeDirsComplement"
+}
+
+function CreateCludeToolMain(){
+    Key="Z"
+	until echo $Key|grep -iq "q"; do
+        shopt -s nocasematch
+		case $Key in
+			"w")  GetWorkDir;;
+	    	"t")  GetTarget
+	    	      CreateCludes
+                  TargetReadyPrompt;;
+	    esac
+        shopt -u nocasematch
+        echo "$PromptCreateCludeMainMsg"
+        read -n1 -s Key
+	done
+    Key="Z"
+}
+
+#CreateCludeToolMain

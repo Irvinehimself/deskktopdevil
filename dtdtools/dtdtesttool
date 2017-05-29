@@ -27,15 +27,22 @@ DirTestPrompt="Choose nested test dir: (1), (2), (3), (4), (5) or (Q)uit"
 ActionPrompt="Choose test action: (E)dit, (C)opy/create/delete, (R)ename, (Q)uit tests"
 UndoPrompt="Press any Key to undo moves/copies/deletes from test directory"
 
+function StripLastChar(){
+    TmpStrng="$1"
+    TmpChar="$2"
+    if [[ "$1" = *"$TmpChar" ]] ; then
+        TmpStrng="${TmpStrng%?}" #Strip off the backslash
+    fi
+    echo $TmpStrng
+}
+
 function GetTestDir(){
     echo "$GetTestDirPrompt"
     read TestDirPath
     if [[ "$TestDirPath" == "" ]] ; then
             TestDirPath="/etc"
         else
-                if [[ "$TestDirPath" == *"/" ]] ; then
-                    TestDirPath=${TestDirPath%?}
-                fi
+                TestDirPath=$(StripLastChar "$TestDirPath" "/")
     fi
 }
 

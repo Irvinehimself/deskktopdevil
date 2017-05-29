@@ -24,6 +24,10 @@
  ### ### The values of the following variables and constants can be safely adjusted to suit the users tastes
  ### ### Make a backup first
 
+ ### Set this if you want a dedicated work folder for using the "CreateCludesTool"
+CreateCludesWork="$HOME/Documents/"
+
+
  ### Change the notification icon
 WatchIcon="$PathToWorkDir/dtdimages/dtddevil.png"
 # Source https://commons.wikimedia.org/wiki/File:SMirC-devil.svg
@@ -64,7 +68,7 @@ TimeToSettle="10"
 # befor initiating the watch
 
  ### Temporaraly increase watch limit
-WatchLimit="65536"
+WatchLimit=""
 # Set WatchLimit to "" if you don't need to increase the limmit. I find 65536 works for me. It could still be increased
 # dramaticaly if  needed, (for example you do a lot of audio work,) but at this level I can more or less coverthe entire
 # root file system, while leaving plenty of watches for other applications.
@@ -107,7 +111,7 @@ WatchLimit="65536"
 # https://superuser.com/questions/117913/ps-aux-output-meaning
 # https://unix.stackexchange.com/questions/13751/kernel-inotify-watch-limit-reached
 
- ### The following time variables are used to avoid flooding the destop with notifications during updates or maintenance
+ ### The following time variables are used to avoid flooding the destop with notifications during normal operation
 LastCreate="-350"
 LastDelete="-350"
 LastModify="-350"
