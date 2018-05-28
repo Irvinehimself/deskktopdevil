@@ -1,5 +1,7 @@
 # Desktop Devil
-A real time, host based, malicous software and intrusion detection system for Linux desktops.
+A real time, host based, malicious software and intrusion detection system for Linux desktops.
+
+**This project was always educational in scope and is now officially dead. Certain elements will, eventually, be incorporated into my [Linux, hardening project](https://github.com/Irvinehimself/TheBeggarsHardeningProject), but, for now, to mark it's official death, I am archiving it as 'read only'**
 
 **License:** GPLv3
 
